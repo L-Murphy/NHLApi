@@ -48,22 +48,43 @@ class GameObject:
 			self.url = "https://statsapi.web.nhl.com/api/v1/game/" + str(self.gameID) +"/feed/live"
 			self.game_JSON = self.get_JSON_object()
 			self.teams_JSON_obj = self.get_teams()
-			self.home_team = TeamObject(self.get_home_team_obj()["id"])
-			self.away_team = TeamObject(self.get_away_team_obj()["id"])
+			self.start_time =  self.convert_start_time()
+			self.states = self.get_state()	#list of abstract game state and detailed game state 
+			self.score = self.get_score()
+			#dict home:score , away:score
+			#self.home_team = TeamObject(self.get_home_team_obj()["id"])
+			#self.away_team = TeamObject(self.get_away_team_obj()["id"])
 			
 		def get_JSON_object(self):
 			gameData = urllib.request.urlopen(self.url).read()
-			return json.loads(gameData)
+			return json.loads(gameData)["gameData"]
+		
+		def convert_start_time(self):
+			game_time = self.game_JSON["datetime"]["dateTime"].split("T") #[date, timeZ]
+			game_time = game_time[1].split("Z") #[time, '']
+			time_lst =  game_time[0].split(":") #[hour, minute, seconds]
+			time_num_shift = int(time_lst[0]) - 11 #converts to EST the hours....Need to look at more. Fails for am games
+			return str(time_num_shift) + ":" + time_lst[1] #makes into a human readable string
+		
+		def get_score(self):
+			return None
+		
+		def get_state(self):
+			status = self.game_JSON["status"]
+			return {"abstract" : status["abstractGameState"], "detailed" : status["detailedState"]}
 		
 		def get_teams(self):
-			return self.game_JSON["liveData"]["boxscore"]["teams"]
+			return self.game_JSON["teams"]
 		
 		def get_away_team_obj(self):
-			return self.teams_JSON_obj["away"]["team"]
+			return self.teams_JSON_obj["away"]["name"]
 		
 		def get_home_team_obj(self):
-			return self.teams_JSON_obj["home"]["team"]
-		
+			return self.teams_JSON_obj["home"]["name"]
+			
+
+'''
+Not sure of the value of the team object at this point	
 class TeamObject:
 	def __init__(self, team_id):
 		self.team_id = team_id
@@ -71,17 +92,20 @@ class TeamObject:
 		self.team_JSON_obj = self.get_JSON_object()["teams"][0]
 		self.team_name = self.team_JSON_obj["name"]
 		self.team_abbreviation = self.team_JSON_obj["abbreviation"]
+		print(self.team_name)
 
 	def get_JSON_object(self):
 		gameData = urllib.request.urlopen(self.url).read()
 		return json.loads(gameData)
+'''
 
 
 
-sc = ScheduleObject(None)
 
-print("\n ============================================================= \n end process")
 
+if __name__ == "__main__":
+	sch = ScheduleObject("2019-01-19")
+	print("\n ============================================================= \n end process")
 
 
 
